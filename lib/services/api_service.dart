@@ -20,8 +20,11 @@ class ApiService {
     required T Function(Map<String, dynamic>) fromJson,
   }) async {
     try {
-      final uri = Uri.parse(baseUrl).replace(
-        path: Uri.parse(baseUrl).path + endpoint,
+      final baseUri = Uri.parse(baseUrl);
+      final basePath = baseUri.path.replaceFirst(RegExp(r'/+$'), '');
+      final endpointPath = endpoint.replaceFirst(RegExp(r'^/+'), '');
+      final uri = baseUri.replace(
+        path: '$basePath/$endpointPath',
         queryParameters: queryParams,
       );
 
@@ -29,7 +32,7 @@ class ApiService {
         "Content-Type": 'application/json; charset=UTF-8',
         'Accept': '*/*',
         if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-        if (headers != null) ...headers,
+        ...?headers,
       };
 
       final encodedBody = body != null ? jsonEncode(body) : null;
@@ -62,7 +65,7 @@ class ApiService {
         // .timeout(const Duration(seconds: 10));
       }
 
-      return _processResponse(response, fromJson);
+      return await _processResponse(response, fromJson);
     } catch (e) {
       debugPrint('Unexpected Error: $e');
       rethrow;
@@ -137,7 +140,7 @@ class ApiService {
     }
   }
 
-  _extractErrorData(http.Response response) {
+  dynamic _extractErrorData(http.Response response) {
     try {
       final Map<String, dynamic> data = jsonDecode(response.body);
       if (data.containsKey('data')) {
